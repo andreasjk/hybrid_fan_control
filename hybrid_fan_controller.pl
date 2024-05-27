@@ -71,26 +71,26 @@
 ## DEBUG LEVEL
 ## 0 means no debugging. 1,2,3,4 provide more verbosity
 ## You should run this script in at least level 1 to verify its working correctly on your system
-$debug = 1;
+$debug = 2;
 
 ## CPU THRESHOLD TEMPS
 ## A modern CPU can heat up from 35C to 60C in a second or two. The fan duty cycle is set based on this
-$high_cpu_temp = 55;		# will go HIGH when we hit
-$med_cpu_temp = 45;	 	# will go MEDIUM when we hit, or drop below again
-$low_cpu_temp = 35;		# will go LOW when we fall below 35 again
+$high_cpu_temp = 78;		# will go HIGH when we hit
+$med_cpu_temp = 65;	 	# will go MEDIUM when we hit, or drop below again
+$low_cpu_temp = 55;		# will go LOW when we fall below 35 again
 
 ## HD THRESHOLD TEMPS
 ## HDs change temperature slowly. 
 ## This is the temperature that we regard as being uncomfortable. The higher this is the
 ## more silent your system.
 ## Note, it is possible for your HDs to go above this... but if your cooling is good, they shouldn't.
-$hd_max_allowed_temp = 38;	# celsius. you will hit 100% duty cycle when you HDs hit this temp.
+$hd_max_allowed_temp = 40;	# celsius. you will hit 100% duty cycle when you HDs hit this temp.
 
 ## CPU TEMP TO OVERRIDE HD FANS
 ## when the CPU climbs above this temperature, the HD fans will be overridden
 ## this prevents the HD fans from spinning up when the CPU fans are capable of providing 
 ## sufficient cooling.
-$cpu_hd_override_temp = 62;
+$cpu_hd_override_temp = 80;
 
 ## CPU/HD SHARED COOLING
 ## If your HD fans contribute to the cooling of your CPU you should set this value.
@@ -107,22 +107,22 @@ $hd_fans_cool_cpu = 1;		# 1 if the hd fans should spin up to cool the cpu, 0 oth
 ## You need to determine the actual max fan speeds that are achieved by the fans
 ## Connected to the cpu_fan_header and the hd_fan_header.
 ## These values are used to verify high/low fan speeds and trigger a BMC reset if necessary.
-$cpu_max_fan_speed 	= 1700;
-$hd_max_fan_speed 	= 1400;
+$cpu_max_fan_speed 	= 10000;
+$hd_max_fan_speed 	= 10000;
 
 
 ## CPU FAN DUTY LEVELS
 ## These levels are used to control the CPU fans
 $fan_duty_high	= 100;		# percentage on, ie 100% is full speed.
-$fan_duty_med 	= 60;
+$fan_duty_med 	= 40;
 $fan_duty_low 	= 30;
 
 ## HD FAN DUTY LEVELS
 ## These levels are used to control the HD fans
 $hd_fan_duty_high 	= 100;	# percentage on, ie 100% is full speed.
-$hd_fan_duty_med_high 	= 80;
-$hd_fan_duty_med_low	= 50;
-$hd_fan_duty_low 	= 30;	# some 120mm fans stall below 30.
+$hd_fan_duty_med_high 	= 60;
+$hd_fan_duty_med_low	= 40;
+$hd_fan_duty_low 	= 20;	# some 120mm fans stall below 30.
 
 
 ## FAN ZONES
@@ -292,7 +292,7 @@ sub get_hd_list
 	my $disk_list_cmd = $platform eq "FreeBSD" ?
 		"camcontrol devlist | sed 's:.*(::;s:).*::;s:,pass[0-9]*::;s:pass[0-9]*,::' | egrep '^[a]*da[0-9]+\$' | tr '\n' ' '"
 	:
-		"lsblk -o NAME --nodeps --noheading | egrep 'sd[a-z]+' | tr '\n' ' '"
+		"ssh 172.20.1.50 lsblk -o NAME --nodeps --noheading | egrep 'sd[a-z]+' | tr '\n' ' '"
 	;
 
 	my $disk_list = `$disk_list_cmd`;
@@ -316,7 +316,7 @@ sub get_hd_temp
 	{
 		my $disk_dev = "/dev/$item";
 
-		my $command = "smartctl -A $disk_dev | grep Temperature_Celsius";
+		my $command = "ssh 172.20.1.50 smartctl -A $disk_dev | grep Temperature_Celsius";
 		dprint( 3, "$command\n" );
 
 		my $output = `$command`;
@@ -327,7 +327,7 @@ sub get_hd_temp
 		# grab 10th item from the output, which is the hard drive temperature (on Seagate NAS HDs)
   		my $temp = "$vals[9]";
 		chomp $temp;
-        dprint( 3, "temp: $temp\n" );
+                dprint( 3, "temp: $temp\n" );
 
 		
 		if( $temp )
